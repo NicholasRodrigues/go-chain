@@ -39,7 +39,6 @@ func InputContributionFunction(data []byte, cr *Blockchain, round int, input Inp
 	receive_data := receive()
 
 	concat_data := input_data + receive_data
-
 	// creating new block
 
 	newBlock := &Block{time.Now().Unix(), []byte(concat_data), cr.blocks[len(cr.blocks)-1].Hash, []byte{}, round}
@@ -51,4 +50,13 @@ func InputContributionFunction(data []byte, cr *Blockchain, round int, input Inp
 	} else {
 		fmt.Println("Content Validation Passed")
 	}
+}
+
+// Function to read the chain
+func ChainReadFunction(c *Blockchain) string {
+	data := ""
+	for i := range c.blocks {
+		data += string(c.blocks[i].Data)
+	}
+	return data
 }
