@@ -11,7 +11,7 @@ type Block struct {
 	Data          []byte // Transactions
 	prevBlockHash []byte
 	Hash          []byte
-	Counter       uint64 // Nonce
+	Counter       int // Nonce
 }
 
 func (b *Block) SetHash() {
