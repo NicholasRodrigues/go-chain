@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"reflect"
 	"time"
 )
 
 type Receive func() string
 type Input func() string
+
+func ValidateBlockPredicate(b *Block) bool {
+
+}
 
 // Simple Content Validation Predicate implementation from backbone protocol
 func ContentValidatePredicate(x *Blockchain) bool {
@@ -56,12 +59,18 @@ func ChainReadFunction(c *Blockchain) string {
 	return data
 }
 
-func ChainValidationPredicate(c *Blockchain) {
+/*func ChainValidationPredicate(c *Blockchain) bool {
 	b := ContentValidatePredicate(c)
 
 	if b && c != nil {
+		index := rand.Intn(len(c.blocks))
 		temp_chain := c
-		c.blocks[rand.Intn(len(c.blocks))].SetHash()
+		c.blocks[index].SetHash()
 
+		for i := true; i; b = false{
+			if
+		}
 	}
+	return b
 }
+*/
