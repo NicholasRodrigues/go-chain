@@ -1,20 +1,54 @@
 package main
 
 import (
-	"math/rand"
-	"strconv"
+	"fmt"
+	"math/big"
+	"reflect"
 	"time"
 )
 
-//  T is the target value when using a proof of work algorithm
-func GenerateT() string {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+type Receive func() string
+type Input func() string
 
-	prefix := rand.Intn(90) + 10
+type ProofOfWork struct {
+	block *Block
+	T     big.Int
+}
 
-	suffix := rand.Intn(10000000)
+// Simple Content Validation Predicate implementation from backbone protocol
+func ContentValidatePredicate(x *Blockchain) bool {
 
-	T := strconv.Itoa(prefix) + strconv.Itoa(suffix)
+	if len(x.blocks) == 0 {
+		return false
+	}
 
-	return T
+	for i := range x.blocks {
+		if i == 0 {
+			continue
+		}
+		if reflect.DeepEqual(x.blocks[i].Hash, x.blocks[i-1].Hash) {
+			return false
+		}
+	}
+	return true
+}
+
+func InputContributionFunction(data []byte, cr *Blockchain, round int, input Input, receive Receive) {
+
+	input_data := input()
+	receive_data := receive()
+
+	concat_data := input_data + receive_data
+
+	// creating new block
+
+	newBlock := &Block{time.Now().Unix(), []byte(concat_data), cr.blocks[len(cr.blocks)-1].Hash, []byte{}, round}
+	cr.blocks = append(cr.blocks, newBlock)
+
+	if !ContentValidatePredicate(cr) {
+		fmt.Println("Content Validation Failed")
+		cr.blocks = cr.blocks[:len(cr.blocks)-1]
+	} else {
+		fmt.Println("Content Validation Passed")
+	}
 }
