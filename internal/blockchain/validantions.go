@@ -9,9 +9,11 @@ import (
 type Receive func() string
 type Input func() string
 
+/*
 func ValidateBlockPredicate(b *Block) bool {
 
 }
+*/
 
 // Simple Content Validation Predicate implementation from backbone protocol
 func ContentValidatePredicate(x *Blockchain) bool {
