@@ -1,4 +1,4 @@
-package main
+package blockchain
 
 import (
 	"bytes"
@@ -19,4 +19,17 @@ func (b *Block) SetHash() {
 	headers := bytes.Join([][]byte{b.prevBlockHash, b.Data, timestamp}, []byte{})
 	hash := sha256.Sum256(headers)
 	b.Hash = hash[:]
+}
+
+func NewBlock(data string, prevBlockHash []byte) *Block {
+	block := &Block{
+		Timestamp:     0,
+		Data:          []byte(data),
+		prevBlockHash: prevBlockHash,
+		Hash:          []byte{},
+		Counter:       0,
+	}
+
+	block.SetHash()
+	return block
 }
