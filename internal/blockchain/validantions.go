@@ -89,3 +89,25 @@ func ChainValidationPredicate(c *Blockchain) bool {
 	}
 	return b
 }
+
+// Function to find the best chain
+
+func MaxChain(c [][]Blockchain) []*Block {
+	temp_chain := []*Block{}
+
+	for i := 1; i < len(c); i++ {
+		if ChainValidationPredicate(&c[i][0]) {
+			temp_chain = maxBlocks(temp_chain, c[i][0].blocks)
+		}
+	}
+
+	return temp_chain
+}
+
+// compare blockchains length
+func maxBlocks(a, b []*Block) []*Block {
+	if len(a) > len(b) {
+		return a
+	}
+	return b
+}
