@@ -1,4 +1,4 @@
-package main
+package blockchain
 
 import (
 	"bytes"
@@ -11,6 +11,8 @@ import (
 const targetBits = 24
 
 var maxNonce = math.MaxInt64
+
+const Difficulty = 16
 
 type ProofOfWork struct {
 	block *Block
@@ -40,7 +42,7 @@ func (pow *ProofOfWork) RunProofOfWork() (int, []byte) {
 	nonce := 0
 
 	if pow.block == nil {
-		pow.block.Data = pow.block.GenesisBlock().Data
+		pow.block.Data = NewGenesisBlock().Data
 	} else {
 		temp_block := pow.block
 		temp_block.SetHash()
@@ -60,5 +62,13 @@ func (pow *ProofOfWork) RunProofOfWork() (int, []byte) {
 	}
 
 	return nonce, hash[:]
+}
 
+func NewProofOfWork(b *Block) *ProofOfWork {
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-Difficulty))
+
+	pow := &ProofOfWork{b, *target}
+
+	return pow
 }

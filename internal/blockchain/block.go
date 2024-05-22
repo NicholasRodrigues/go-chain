@@ -1,4 +1,4 @@
-package main
+package blockchain
 
 import (
 	"bytes"
@@ -21,14 +21,15 @@ func (b *Block) SetHash() {
 	b.Hash = hash[:]
 }
 
-func (b *Block) GenesisBlock() *Block {
-	gen := &Block{
+func NewBlock(data string, prevBlockHash []byte) *Block {
+	block := &Block{
 		Timestamp:     0,
-		Data:          []byte("Genesis Block"),
-		prevBlockHash: []byte{},
+		Data:          []byte(data),
+		prevBlockHash: prevBlockHash,
 		Hash:          []byte{},
 		Counter:       0,
 	}
 
-	return gen
+	block.SetHash()
+	return block
 }
