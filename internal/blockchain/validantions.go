@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"math/big"
+	"math/rand"
 	"reflect"
 	"time"
 )
@@ -9,8 +12,15 @@ import (
 type Receive func() string
 type Input func() string
 
-func ValidateBlockPredicate(b *Block) bool {
+func ValidateBlockPredicate(pow *ProofOfWork) bool {
+	var hashInt big.Int
 
+	data := pow.prepareData(pow.block.Counter)
+	hash := sha256.Sum256(data)
+	hashInt.SetBytes(hash[:])
+
+	validation := hashInt.Cmp(&pow.T) == -1
+	return validation
 }
 
 // Simple Content Validation Predicate implementation from backbone protocol
@@ -59,7 +69,7 @@ func ChainReadFunction(c *Blockchain) string {
 	return data
 }
 
-/*func ChainValidationPredicate(c *Blockchain) bool {
+func ChainValidationPredicate(c *Blockchain) bool {
 	b := ContentValidatePredicate(c)
 
 	if b && c != nil {
@@ -67,10 +77,9 @@ func ChainReadFunction(c *Blockchain) string {
 		temp_chain := c
 		c.blocks[index].SetHash()
 
-		for i := true; i; b = false{
-			if
+		for i := true; i; b = false {
+
 		}
 	}
 	return b
 }
-*/
