@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"reflect"
 	"time"
 )
@@ -69,16 +68,23 @@ func ChainReadFunction(c *Blockchain) string {
 	return data
 }
 
+// Function to validate the chain
 func ChainValidationPredicate(c *Blockchain) bool {
 	b := ContentValidatePredicate(c)
 
-	if b && c != nil {
-		index := rand.Intn(len(c.blocks))
-		temp_chain := c
-		c.blocks[index].SetHash()
+	if b {
+		temp_chain := c.blocks[len(c.blocks)-1]
+		s_ := sha256.Sum256(temp_chain.Data)
+		proof_ := &ProofOfWork{temp_chain, *big.NewInt(1)}
 
-		for i := true; i; b = false {
-
+		for i := true; i; b = false || c == nil {
+			if ValidateBlockPredicate(proof_) && reflect.DeepEqual(temp_chain.Hash, s_) {
+				s_ = [32]byte{}
+				copy(s_[:], temp_chain.Data)
+				c.blocks = c.blocks[:len(c.blocks)-1]
+			} else {
+				b = false
+			}
 		}
 	}
 	return b
