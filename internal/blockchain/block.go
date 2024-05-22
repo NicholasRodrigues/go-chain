@@ -20,3 +20,15 @@ func (b *Block) SetHash() {
 	hash := sha256.Sum256(headers)
 	b.Hash = hash[:]
 }
+
+func (b *Block) GenesisBlock() *Block {
+	gen := &Block{
+		Timestamp:     0,
+		Data:          []byte("Genesis Block"),
+		prevBlockHash: []byte{},
+		Hash:          []byte{},
+		Counter:       0,
+	}
+
+	return gen
+}
