@@ -1,7 +1,9 @@
 package blockchain
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"math/big"
 	"reflect"
 	"time"
 )
@@ -9,11 +11,16 @@ import (
 type Receive func() string
 type Input func() string
 
-/*
-func ValidateBlockPredicate(b *Block) bool {
+func ValidateBlockPredicate(pow *ProofOfWork) bool {
+	var hashInt big.Int
 
+	data := pow.prepareData(pow.block.Counter)
+	hash := sha256.Sum256(data)
+	hashInt.SetBytes(hash[:])
+
+	validation := hashInt.Cmp(&pow.T) == -1
+	return validation
 }
-*/
 
 // Simple Content Validation Predicate implementation from backbone protocol
 func ContentValidatePredicate(x *Blockchain) bool {
@@ -61,18 +68,46 @@ func ChainReadFunction(c *Blockchain) string {
 	return data
 }
 
-/*func ChainValidationPredicate(c *Blockchain) bool {
+// Function to validate the chain
+func ChainValidationPredicate(c *Blockchain) bool {
 	b := ContentValidatePredicate(c)
 
-	if b && c != nil {
-		index := rand.Intn(len(c.blocks))
-		temp_chain := c
-		c.blocks[index].SetHash()
+	if b {
+		temp_chain := c.blocks[len(c.blocks)-1]
+		s_ := sha256.Sum256(temp_chain.Data)
+		proof_ := &ProofOfWork{temp_chain, *big.NewInt(1)}
 
-		for i := true; i; b = false{
-			if
+		for i := true; i; b = false || c == nil {
+			if ValidateBlockPredicate(proof_) && reflect.DeepEqual(temp_chain.Hash, s_) {
+				s_ = [32]byte{}
+				copy(s_[:], temp_chain.Data)
+				c.blocks = c.blocks[:len(c.blocks)-1]
+			} else {
+				b = false
+			}
 		}
 	}
 	return b
 }
-*/
+
+// Function to find the best chain
+
+func MaxChain(c [][]Blockchain) []*Block {
+	temp_chain := []*Block{}
+
+	for i := 1; i < len(c); i++ {
+		if ChainValidationPredicate(&c[i][0]) {
+			temp_chain = maxBlocks(temp_chain, c[i][0].blocks)
+		}
+	}
+
+	return temp_chain
+}
+
+// compare blockchains length
+func maxBlocks(a, b []*Block) []*Block {
+	if len(a) > len(b) {
+		return a
+	}
+	return b
+}
