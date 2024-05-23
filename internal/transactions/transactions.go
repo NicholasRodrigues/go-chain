@@ -166,3 +166,20 @@ func (tx *Transaction) String() string {
 
 	return strings.Join(lines, "\n")
 }
+
+// IsLockedWithKey checks if the output can be used by the owner of the pubKeyHash
+func (out *TransactionOutput) IsLockedWithKey(pubKeyHash []byte) bool {
+	return bytes.Compare([]byte(out.ScriptPubKey), pubKeyHash) == 0
+}
+
+// UsesKey checks if the input uses the pubKeyHash to unlock the output
+func (in *TransactionInput) UsesKey(pubKeyHash []byte) bool {
+	lockingHash := HashPubKey(in.PubKey)
+	return bytes.Compare(lockingHash, pubKeyHash) == 0
+}
+
+// HashPubKey hashes public key
+func HashPubKey(pubKey []byte) []byte {
+	publicSHA256 := sha256.Sum256(pubKey)
+	return publicSHA256[:]
+}
