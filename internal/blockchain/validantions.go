@@ -11,100 +11,100 @@ import (
 type Receive func() string
 type Input func() string
 
+// ValidateBlockPredicate validates a block using Proof of Work
 func ValidateBlockPredicate(pow *ProofOfWork) bool {
 	var hashInt big.Int
-
 	data := pow.prepareData(pow.block.Counter)
 	hash := sha256.Sum256(data)
 	hashInt.SetBytes(hash[:])
 
-	validation := hashInt.Cmp(&pow.T) == -1
-	return validation
+	return hashInt.Cmp(&pow.T) == -1
 }
 
-// Simple Content Validation Predicate implementation from backbone protocol
-func ContentValidatePredicate(x *Blockchain) bool {
-
-	if len(x.blocks) == 0 {
+// ContentValidatePredicate validates the content of the blockchain
+func ContentValidatePredicate(chain *Blockchain) bool {
+	if len(chain.Blocks) == 0 {
 		return false
 	}
 
-	for i := range x.blocks {
-		if i == 0 {
-			continue
-		}
-		if reflect.DeepEqual(x.blocks[i].Hash, x.blocks[i-1].Hash) {
+	for i := 1; i < len(chain.Blocks); i++ {
+		if reflect.DeepEqual(chain.Blocks[i].Hash, chain.Blocks[i-1].Hash) {
 			return false
 		}
 	}
 	return true
 }
 
-func InputContributionFunction(data []byte, cr *Blockchain, round int, input Input, receive Receive) {
+// InputContributionFunction processes input and adds a new block to the blockchain
+func InputContributionFunction(data []byte, chain *Blockchain, round int, input Input, receive Receive) {
+	inputData := input()
+	receiveData := receive()
+	concatData := inputData + receiveData
 
-	input_data := input()
-	receive_data := receive()
+	newBlock := &Block{
+		Timestamp:     time.Now().Unix(),
+		Data:          []byte(concatData),
+		PrevBlockHash: chain.Blocks[len(chain.Blocks)-1].Hash,
+		Counter:       round,
+	}
 
-	concat_data := input_data + receive_data
-	// creating new block
+	chain.Blocks = append(chain.Blocks, newBlock)
 
-	newBlock := &Block{time.Now().Unix(), []byte(concat_data), cr.blocks[len(cr.blocks)-1].Hash, []byte{}, round}
-	cr.blocks = append(cr.blocks, newBlock)
-
-	if !ContentValidatePredicate(cr) {
+	if !ContentValidatePredicate(chain) {
 		fmt.Println("Content Validation Failed")
-		cr.blocks = cr.blocks[:len(cr.blocks)-1]
+		chain.Blocks = chain.Blocks[:len(chain.Blocks)-1]
 	} else {
 		fmt.Println("Content Validation Passed")
 	}
 }
 
-// Function to read the chain
-func ChainReadFunction(c *Blockchain) string {
-	data := ""
-	for i := range c.blocks {
-		data += string(c.blocks[i].Data)
+// ChainReadFunction returns the data of the blockchain as a string
+func ChainReadFunction(chain *Blockchain) string {
+	var data string
+	for _, block := range chain.Blocks {
+		data += string(block.Data)
 	}
 	return data
 }
 
-// Function to validate the chain
-func ChainValidationPredicate(c *Blockchain) bool {
-	b := ContentValidatePredicate(c)
-
-	if b {
-		temp_chain := c.blocks[len(c.blocks)-1]
-		s_ := sha256.Sum256(temp_chain.Data)
-		proof_ := &ProofOfWork{temp_chain, *big.NewInt(1)}
-
-		for i := true; i; b = false || c == nil {
-			if ValidateBlockPredicate(proof_) && reflect.DeepEqual(temp_chain.Hash, s_) {
-				s_ = [32]byte{}
-				copy(s_[:], temp_chain.Data)
-				c.blocks = c.blocks[:len(c.blocks)-1]
-			} else {
-				b = false
-			}
-		}
-	}
-	return b
-}
-
-// Function to find the best chain
-
-func MaxChain(c [][]Blockchain) []*Block {
-	temp_chain := []*Block{}
-
-	for i := 1; i < len(c); i++ {
-		if ChainValidationPredicate(&c[i][0]) {
-			temp_chain = maxBlocks(temp_chain, c[i][0].blocks)
-		}
+// ChainValidationPredicate validates the blockchain
+func ChainValidationPredicate(chain *Blockchain) bool {
+	if !ContentValidatePredicate(chain) {
+		return false
 	}
 
-	return temp_chain
+	for len(chain.Blocks) > 0 {
+		lastBlock := chain.Blocks[len(chain.Blocks)-1]
+		hash := sha256.Sum256(lastBlock.Data)
+		proof := &ProofOfWork{block: lastBlock, T: *big.NewInt(1)}
+
+		if !ValidateBlockPredicate(proof) || !reflect.DeepEqual(lastBlock.Hash, hash) {
+			return false
+		}
+
+		// Prepare the hash for the next iteration
+		hash = [32]byte{}
+		copy(hash[:], lastBlock.Data)
+		chain.Blocks = chain.Blocks[:len(chain.Blocks)-1]
+	}
+
+	return true
 }
 
-// compare blockchains length
+// MaxChain finds the best chain among multiple chains
+func MaxChain(chains [][]Blockchain) []*Block {
+	var bestChain []*Block
+
+	for i := 1; i < len(chains); i++ {
+		if ChainValidationPredicate(&chains[i][0]) {
+			bestChain = maxBlocks(bestChain, chains[i][0].Blocks)
+		}
+	}
+
+	return bestChain
+}
+
+// maxBlocks returns the longer of two block slices
 func maxBlocks(a, b []*Block) []*Block {
 	if len(a) > len(b) {
 		return a

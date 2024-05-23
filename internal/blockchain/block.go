@@ -4,32 +4,38 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"strconv"
+	"time"
 )
 
 type Block struct {
 	Timestamp     int64
 	Data          []byte // Transactions
-	prevBlockHash []byte
+	PrevBlockHash []byte
 	Hash          []byte
 	Counter       int // Nonce
 }
 
 func (b *Block) SetHash() {
 	timestamp := []byte(strconv.FormatInt(b.Timestamp, 10))
-	headers := bytes.Join([][]byte{b.prevBlockHash, b.Data, timestamp}, []byte{})
+	headers := bytes.Join([][]byte{b.PrevBlockHash, b.Data, timestamp}, []byte{})
 	hash := sha256.Sum256(headers)
 	b.Hash = hash[:]
 }
 
+// NewBlock creates and returns a new block.
 func NewBlock(data string, prevBlockHash []byte) *Block {
 	block := &Block{
-		Timestamp:     0,
+		Timestamp:     time.Now().Unix(),
 		Data:          []byte(data),
-		prevBlockHash: prevBlockHash,
+		PrevBlockHash: prevBlockHash,
 		Hash:          []byte{},
 		Counter:       0,
 	}
 
-	block.SetHash()
+	pow := NewProofOfWork(block)
+	hash, nonce := pow.Run()
+	block.Hash = hash[:]
+	block.Counter = nonce
+
 	return block
 }
