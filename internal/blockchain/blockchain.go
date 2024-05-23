@@ -1,21 +1,35 @@
 package blockchain
 
-import "bytes"
+import (
+	"bytes"
+	"github.com/NicholasRodrigues/go-chain/internal/transactions"
+)
 
 type Blockchain struct {
 	Blocks []*Block
 }
 
-func (bc *Blockchain) AddBlock(data string) {
+// AddBlock adds a new block to the blockchain with the given transactions.
+func (bc *Blockchain) AddBlock(transactions []*transactions.Transaction) {
 	prevBlock := bc.Blocks[len(bc.Blocks)-1]
-	newBlock := NewBlock(data, prevBlock.Hash)
+	newBlock := NewBlock(transactions, prevBlock.Hash)
 	bc.Blocks = append(bc.Blocks, newBlock)
 }
 
+// NewGenesisBlock creates and returns the genesis block.
 func NewGenesisBlock() *Block {
-	return NewBlock("Genesis Block", []byte{})
+	coinbase := transactions.NewTransaction(
+		[]transactions.TransactionInput{
+			{Txid: []byte{}, Vout: -1, ScriptSig: "Genesis"},
+		},
+		[]transactions.TransactionOutput{
+			{Value: 50, ScriptPubKey: "coinbase"},
+		},
+	)
+	return NewBlock([]*transactions.Transaction{coinbase}, []byte{})
 }
 
+// NewBlockchain creates and returns a new blockchain with the genesis block.
 func NewBlockchain() *Blockchain {
 	return &Blockchain{[]*Block{NewGenesisBlock()}}
 }

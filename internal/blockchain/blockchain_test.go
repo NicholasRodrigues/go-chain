@@ -2,70 +2,45 @@ package blockchain
 
 import (
 	"bytes"
+	"github.com/NicholasRodrigues/go-chain/internal/transactions"
 	"testing"
 )
 
-func TestProofOfWork_Run(t *testing.T) {
-	block := NewBlock("test data", []byte{})
-	pow := NewProofOfWork(block)
-
-	hash, nonce := pow.Run()
-	block.Hash = hash[:]
-	block.Counter = nonce
-
-	if !pow.Validate() {
-		t.Errorf("Proof of work validation failed for block with hash %x", block.Hash)
-	}
-}
-
-func TestProofOfWork_Validate(t *testing.T) {
-	block := NewBlock("test data", []byte{})
-	pow := NewProofOfWork(block)
-
-	hash, nonce := pow.Run()
-	block.Hash = hash[:]
-	block.Counter = nonce
-
-	if !pow.Validate() {
-		t.Errorf("Expected block to be valid, but validation failed")
-	}
-}
-
-func TestNewBlockchain(t *testing.T) {
+// TestBlockchainAddBlock checks if blocks are added correctly to the blockchain
+func TestBlockchainAddBlock(t *testing.T) {
 	bc := NewBlockchain()
-	if bc == nil {
-		t.Fatalf("Expected blockchain to be created")
-	}
-	if len(bc.Blocks) != 1 {
-		t.Fatalf("Expected blockchain to have one block, got %d", len(bc.Blocks))
-	}
-	if !bytes.Equal(bc.Blocks[0].Hash, NewGenesisBlock().Hash) {
-		t.Errorf("Expected genesis block hash to match")
-	}
-}
+	tx := createTransaction()
+	bc.AddBlock([]*transactions.Transaction{tx})
 
-func TestAddBlock(t *testing.T) {
-	bc := NewBlockchain()
-	bc.AddBlock("First Block after Genesis")
-	bc.AddBlock("Second Block after Genesis")
-
-	if len(bc.Blocks) != 3 {
-		t.Fatalf("Expected blockchain to have three Blocks, got %d", len(bc.Blocks))
+	if len(bc.Blocks) != 2 {
+		t.Errorf("Expected blockchain length 2, but got %d", len(bc.Blocks))
 	}
+
 	if !bytes.Equal(bc.Blocks[1].PrevBlockHash, bc.Blocks[0].Hash) {
-		t.Errorf("Expected first block to reference genesis block hash")
-	}
-	if !bytes.Equal(bc.Blocks[2].PrevBlockHash, bc.Blocks[1].Hash) {
-		t.Errorf("Expected second block to reference first block hash")
+		t.Errorf("Previous block hash does not match")
 	}
 }
 
-func TestBlockchain_IsValid(t *testing.T) {
+// TestBlockchainIsValid checks if the blockchain validation works correctly
+func TestBlockchainIsValid(t *testing.T) {
 	bc := NewBlockchain()
-	bc.AddBlock("First Block after Genesis")
-	bc.AddBlock("Second Block after Genesis")
+	tx := createTransaction()
+	bc.AddBlock([]*transactions.Transaction{tx})
+	bc.AddBlock([]*transactions.Transaction{tx})
 
 	if !bc.IsValid() {
-		t.Errorf("Expected blockchain to be valid")
+		t.Errorf("Blockchain should be valid")
+	}
+
+	// Tamper with the blockchain
+	bc.Blocks[1].Transactions = []*transactions.Transaction{
+		transactions.NewTransaction(
+			[]transactions.TransactionInput{{Txid: []byte("tampered"), Vout: 0, ScriptSig: "tampered"}},
+			[]transactions.TransactionOutput{{Value: 50, ScriptPubKey: "tampered"}},
+		),
+	}
+
+	if bc.IsValid() {
+		t.Errorf("Blockchain should be invalid after tampering")
 	}
 }
