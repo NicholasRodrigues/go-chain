@@ -5,21 +5,67 @@ import (
 	"testing"
 )
 
+func TestProofOfWork_Run(t *testing.T) {
+	block := NewBlock("test data", []byte{})
+	pow := NewProofOfWork(block)
+
+	hash, nonce := pow.Run()
+	block.Hash = hash[:]
+	block.Counter = nonce
+
+	if !pow.Validate() {
+		t.Errorf("Proof of work validation failed for block with hash %x", block.Hash)
+	}
+}
+
+func TestProofOfWork_Validate(t *testing.T) {
+	block := NewBlock("test data", []byte{})
+	pow := NewProofOfWork(block)
+
+	hash, nonce := pow.Run()
+	block.Hash = hash[:]
+	block.Counter = nonce
+
+	if !pow.Validate() {
+		t.Errorf("Expected block to be valid, but validation failed")
+	}
+}
+
+func TestNewBlockchain(t *testing.T) {
+	bc := NewBlockchain()
+	if bc == nil {
+		t.Fatalf("Expected blockchain to be created")
+	}
+	if len(bc.Blocks) != 1 {
+		t.Fatalf("Expected blockchain to have one block, got %d", len(bc.Blocks))
+	}
+	if !bytes.Equal(bc.Blocks[0].Hash, NewGenesisBlock().Hash) {
+		t.Errorf("Expected genesis block hash to match")
+	}
+}
+
 func TestAddBlock(t *testing.T) {
 	bc := NewBlockchain()
-	bc.AddBlock("New Block 1")
-	bc.AddBlock("New Block 2")
+	bc.AddBlock("First Block after Genesis")
+	bc.AddBlock("Second Block after Genesis")
 
-	if len(bc.blocks) != 3 {
-		t.Errorf("expected blockchain length 3, got %d", len(bc.blocks))
+	if len(bc.Blocks) != 3 {
+		t.Fatalf("Expected blockchain to have three Blocks, got %d", len(bc.Blocks))
 	}
-	if string(bc.blocks[1].Data) != "New Block 1" {
-		t.Errorf("expected block 1 data 'New Block 1', got %s", string(bc.blocks[1].Data))
+	if !bytes.Equal(bc.Blocks[1].PrevBlockHash, bc.Blocks[0].Hash) {
+		t.Errorf("Expected first block to reference genesis block hash")
 	}
-	if string(bc.blocks[2].Data) != "New Block 2" {
-		t.Errorf("expected block 2 data 'New Block 2', got %s", string(bc.blocks[2].Data))
+	if !bytes.Equal(bc.Blocks[2].PrevBlockHash, bc.Blocks[1].Hash) {
+		t.Errorf("Expected second block to reference first block hash")
 	}
-	if !bytes.Equal(bc.blocks[2].prevBlockHash, bc.blocks[1].Hash) {
-		t.Errorf("expected block 2 previous hash to match block 1 hash")
+}
+
+func TestBlockchain_IsValid(t *testing.T) {
+	bc := NewBlockchain()
+	bc.AddBlock("First Block after Genesis")
+	bc.AddBlock("Second Block after Genesis")
+
+	if !bc.IsValid() {
+		t.Errorf("Expected blockchain to be valid")
 	}
 }

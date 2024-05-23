@@ -13,7 +13,7 @@ func TestContentValidatePredicate(t *testing.T) {
 		t.Error("expected blockchain to be valid")
 	}
 
-	bc.blocks[1].Hash = bc.blocks[0].Hash
+	bc.Blocks[1].Hash = bc.Blocks[0].Hash
 	if ContentValidatePredicate(bc) {
 		t.Error("expected blockchain to be invalid")
 	}
@@ -33,13 +33,13 @@ func TestInputContributionFunction(t *testing.T) {
 
 	InputContributionFunction(data, bc, round, input, receive)
 
-	if len(bc.blocks) != 2 {
-		t.Errorf("expected blockchain length 2, got %d", len(bc.blocks))
+	if len(bc.Blocks) != 2 {
+		t.Errorf("expected blockchain length 2, got %d", len(bc.Blocks))
 	}
 
 	concat_data := "input data" + "received data"
-	if string(bc.blocks[1].Data) != concat_data {
-		t.Errorf("expected block data %s, got %s", concat_data, string(bc.blocks[1].Data))
+	if string(bc.Blocks[1].Data) != concat_data {
+		t.Errorf("expected block data %s, got %s", concat_data, string(bc.Blocks[1].Data))
 	}
 
 	if !ContentValidatePredicate(bc) {

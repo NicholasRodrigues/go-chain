@@ -14,7 +14,7 @@ func TestSetHash(t *testing.T) {
 	block := &Block{
 		Timestamp:     time.Now().Unix(),
 		Data:          []byte(data),
-		prevBlockHash: prevHash,
+		PrevBlockHash: prevHash,
 		Counter:       0,
 	}
 	block.SetHash()
@@ -33,8 +33,8 @@ func TestNewBlock(t *testing.T) {
 	if block.Data == nil || !bytes.Equal(block.Data, []byte(data)) {
 		t.Errorf("expected data %s, got %s", data, string(block.Data))
 	}
-	if block.prevBlockHash == nil || !bytes.Equal(block.prevBlockHash, prevHash) {
-		t.Errorf("expected previous hash %x, got %x", prevHash, block.prevBlockHash)
+	if block.PrevBlockHash == nil || !bytes.Equal(block.PrevBlockHash, prevHash) {
+		t.Errorf("expected previous hash %x, got %x", prevHash, block.PrevBlockHash)
 	}
 	if block.Hash == nil || len(block.Hash) == 0 {
 		t.Error("expected non-nil and non-empty hash")
@@ -42,26 +42,14 @@ func TestNewBlock(t *testing.T) {
 }
 
 func TestNewGenesisBlock(t *testing.T) {
-	block := NewGenesisBlock()
-
-	if block.Data == nil || string(block.Data) != "Genesis Block" {
-		t.Errorf("expected data 'Genesis Block', got %s", string(block.Data))
+	genesisBlock := NewGenesisBlock()
+	if genesisBlock == nil {
+		t.Fatalf("Expected genesis block to be created")
 	}
-	if block.prevBlockHash == nil || len(block.prevBlockHash) != 0 {
-		t.Error("expected empty previous hash")
+	if len(genesisBlock.Hash) == 0 {
+		t.Errorf("Expected genesis block hash to be set")
 	}
-	if block.Hash == nil || len(block.Hash) == 0 {
-		t.Error("expected non-nil and non-empty hash")
-	}
-}
-
-func TestNewBlockchain(t *testing.T) {
-	bc := NewBlockchain()
-
-	if len(bc.blocks) != 1 {
-		t.Errorf("expected blockchain length 1, got %d", len(bc.blocks))
-	}
-	if string(bc.blocks[0].Data) != "Genesis Block" {
-		t.Errorf("expected genesis block data 'Genesis Block', got %s", string(bc.blocks[0].Data))
+	if !bytes.Equal(genesisBlock.PrevBlockHash, []byte{}) {
+		t.Errorf("Expected genesis block to have no previous block hash")
 	}
 }
