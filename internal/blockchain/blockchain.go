@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"github.com/NicholasRodrigues/go-chain/internal/transactions"
 )
 
@@ -51,4 +52,60 @@ func (bc *Blockchain) IsValid() bool {
 	}
 
 	return true
+}
+
+// FindUnspentTransactions returns a list of transactions containing unspent outputs for an address
+func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) []transactions.Transaction {
+	var unspentTxs []transactions.Transaction
+	spentTXOs := make(map[string][]int)
+
+	for _, block := range bc.Blocks {
+		for _, tx := range block.Transactions {
+			txID := hex.EncodeToString(tx.ID)
+
+		Outputs:
+			for outIdx, out := range tx.Vout {
+				// Check if the output was already spent
+				if spentTXOs[txID] != nil {
+					for _, spentOutIdx := range spentTXOs[txID] {
+						if spentOutIdx == outIdx {
+							continue Outputs
+						}
+					}
+				}
+
+				if out.IsLockedWithKey(pubKeyHash) {
+					unspentTxs = append(unspentTxs, *tx)
+				}
+			}
+
+			// Collect spent outputs
+			if !tx.IsCoinbase() {
+				for _, in := range tx.Vin {
+					if in.UsesKey(pubKeyHash) {
+						inTxID := hex.EncodeToString(in.Txid)
+						spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Vout)
+					}
+				}
+			}
+		}
+	}
+
+	return unspentTxs
+}
+
+// FindUTXO returns unspent transaction outputs for a given address
+func (bc *Blockchain) FindUTXO(pubKeyHash []byte) []transactions.TransactionOutput {
+	var UTXOs []transactions.TransactionOutput
+	unspentTransactions := bc.FindUnspentTransactions(pubKeyHash)
+
+	for _, tx := range unspentTransactions {
+		for _, out := range tx.Vout {
+			if out.IsLockedWithKey(pubKeyHash) {
+				UTXOs = append(UTXOs, out)
+			}
+		}
+	}
+
+	return UTXOs
 }
