@@ -28,6 +28,8 @@ type TransactionInput struct {
 type TransactionOutput struct {
 	Value        int
 	ScriptPubKey string
+	Txid         []byte
+	Vout         int
 }
 
 // NewTransaction creates a new transaction with the given inputs and outputs.
@@ -81,7 +83,7 @@ func utxoKey(txid []byte, vout int) string {
 	return fmt.Sprintf("%x:%d", txid, vout)
 }
 
-// / Validate ensures that the transaction is valid.
+// Validate ensures that the transaction is valid.
 func (tx *Transaction) Validate(utxoSet map[string]TransactionOutput) bool {
 	if tx.IsCoinbase() {
 		return true
@@ -169,13 +171,13 @@ func (tx *Transaction) String() string {
 
 // IsLockedWithKey checks if the output can be used by the owner of the pubKeyHash
 func (out *TransactionOutput) IsLockedWithKey(pubKeyHash []byte) bool {
-	return bytes.Compare([]byte(out.ScriptPubKey), pubKeyHash) == 0
+	return bytes.Equal([]byte(out.ScriptPubKey), pubKeyHash)
 }
 
 // UsesKey checks if the input uses the pubKeyHash to unlock the output
 func (in *TransactionInput) UsesKey(pubKeyHash []byte) bool {
 	lockingHash := HashPubKey(in.PubKey)
-	return bytes.Compare(lockingHash, pubKeyHash) == 0
+	return bytes.Equal(lockingHash, pubKeyHash)
 }
 
 // HashPubKey hashes public key
