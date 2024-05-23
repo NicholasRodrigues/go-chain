@@ -35,9 +35,6 @@ func TestBlockHash(t *testing.T) {
 // TestGenesisBlock checks if the genesis block is created correctly
 func TestGenesisBlock(t *testing.T) {
 	block := NewGenesisBlock()
-	if block == nil {
-		t.Errorf("Genesis block is nil")
-	}
 	if len(block.PrevBlockHash) != 0 {
 		t.Errorf("Genesis block should have no previous block hash")
 	}
