@@ -8,26 +8,34 @@ import (
 	"strconv"
 )
 
-const targetBits = 24
+const Difficulty = 16
 
 var maxNonce = math.MaxInt64
 
-const Difficulty = 16
-
+// ProofOfWork represents a proof-of-work.
 type ProofOfWork struct {
 	block *Block
 	T     big.Int
 }
 
-// Prepare pow data, this function hashes the data and returns it
+// NewProofOfWork creates and returns a ProofOfWork.
+func NewProofOfWork(b *Block) *ProofOfWork {
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-Difficulty))
 
+	pow := &ProofOfWork{b, *target}
+
+	return pow
+}
+
+// prepareData prepares data for hashing.
 func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	data := bytes.Join(
 		[][]byte{
-			pow.block.prevBlockHash,
+			pow.block.PrevBlockHash,
 			pow.block.Data,
 			[]byte(strconv.FormatInt(pow.block.Timestamp, 10)),
-			[]byte(strconv.FormatInt(targetBits, 10)),
+			[]byte(strconv.FormatInt(int64(Difficulty), 10)),
 			[]byte(strconv.FormatInt(int64(nonce), 10)),
 		},
 		[]byte{},
@@ -36,24 +44,17 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	return data
 }
 
-func (pow *ProofOfWork) RunProofOfWork() (int, []byte) {
+// Run performs the proof-of-work algorithm.
+func (pow *ProofOfWork) Run() ([]byte, int) {
 	var hashInt big.Int
 	var hash [32]byte
 	nonce := 0
 
-	if pow.block == nil {
-		pow.block.Data = NewGenesisBlock().Data
-	} else {
-		temp_block := pow.block
-		temp_block.SetHash()
-		pow.block = temp_block
-	}
-
 	for nonce < maxNonce {
 		data := pow.prepareData(nonce)
 		hash = sha256.Sum256(data)
-
 		hashInt.SetBytes(hash[:])
+
 		if hashInt.Cmp(&pow.T) == -1 {
 			break
 		} else {
@@ -61,14 +62,16 @@ func (pow *ProofOfWork) RunProofOfWork() (int, []byte) {
 		}
 	}
 
-	return nonce, hash[:]
+	return hash[:], nonce
 }
 
-func NewProofOfWork(b *Block) *ProofOfWork {
-	target := big.NewInt(1)
-	target.Lsh(target, uint(256-Difficulty))
+// Validate checks if the block's proof-of-work is valid.
+func (pow *ProofOfWork) Validate() bool {
+	var hashInt big.Int
+	data := pow.prepareData(pow.block.Counter)
 
-	pow := &ProofOfWork{b, *target}
+	hash := sha256.Sum256(data)
+	hashInt.SetBytes(hash[:])
 
-	return pow
+	return hashInt.Cmp(&pow.T) == -1
 }
