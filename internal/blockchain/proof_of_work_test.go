@@ -1,24 +1,32 @@
 package blockchain
 
 import (
-	"math/big"
+	"github.com/NicholasRodrigues/go-chain/internal/transactions"
 	"testing"
 )
 
-func TestNewProofOfWork(t *testing.T) {
-	block := NewBlock("test data", []byte{})
+// TestProofOfWorkRun ensures that the proof of work runs correctly
+func TestProofOfWorkRun(t *testing.T) {
+	tx := createTransaction()
+	block := NewBlock([]*transactions.Transaction{tx}, []byte{})
+	pow := NewProofOfWork(block)
+	hash, nonce := pow.Run()
+
+	block.Hash = hash[:]
+	block.Counter = nonce
+
+	if !pow.Validate() {
+		t.Errorf("Proof of work did not validate")
+	}
+}
+
+// TestProofOfWorkValidate checks if proof of work validation works correctly
+func TestProofOfWorkValidate(t *testing.T) {
+	tx := createTransaction()
+	block := NewBlock([]*transactions.Transaction{tx}, []byte{})
 	pow := NewProofOfWork(block)
 
-	expectedTarget := big.NewInt(1)
-	expectedTarget.Lsh(expectedTarget, uint(256-Difficulty))
-
-	if pow == nil {
-		t.Fatal("expected non-nil ProofOfWork")
-	}
-	if pow.block != block {
-		t.Error("expected pow.block to be the same as block")
-	}
-	if pow.T.Cmp(expectedTarget) != 0 {
-		t.Errorf("expected target %s, got %s", expectedTarget, &pow.T)
+	if !pow.Validate() {
+		t.Errorf("Proof of work validation failed")
 	}
 }

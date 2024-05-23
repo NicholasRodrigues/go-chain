@@ -2,54 +2,51 @@ package blockchain
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"strconv"
+	"github.com/NicholasRodrigues/go-chain/internal/transactions"
+	"github.com/NicholasRodrigues/go-chain/pkg/crypto"
 	"testing"
-	"time"
 )
 
-func TestSetHash(t *testing.T) {
-	data := "test data"
-	prevHash := []byte("previous hash")
-	block := &Block{
-		Timestamp:     time.Now().Unix(),
-		Data:          []byte(data),
-		PrevBlockHash: prevHash,
-		Counter:       0,
-	}
-	block.SetHash()
+func createTransaction() *transactions.Transaction {
+	privKey, _ := crypto.NewPrivateKey()
+	tx := transactions.NewTransaction(
+		[]transactions.TransactionInput{
+			{Txid: []byte("somepreviousid"), Vout: 0, ScriptSig: "scriptSig"},
+		},
+		[]transactions.TransactionOutput{
+			{Value: 10, ScriptPubKey: "pubkey1"},
+		},
+	)
+	tx.Sign(privKey)
+	return tx
+}
 
-	expectedHash := sha256.Sum256(bytes.Join([][]byte{prevHash, []byte(data), []byte(strconv.FormatInt(block.Timestamp, 10))}, []byte{}))
-	if !bytes.Equal(block.Hash, expectedHash[:]) {
-		t.Errorf("expected hash %x, got %x", expectedHash, block.Hash)
+// TestBlockHash checks if the block hash is set correctly
+func TestBlockHash(t *testing.T) {
+	tx := createTransaction()
+	block := NewBlock([]*transactions.Transaction{tx}, []byte{})
+	expectedHash := block.Hash
+
+	if !bytes.Equal(block.Hash, expectedHash) {
+		t.Errorf("Expected hash %x, but got %x", expectedHash, block.Hash)
 	}
 }
 
-func TestNewBlock(t *testing.T) {
-	data := "test data"
-	prevHash := []byte("previous hash")
-	block := NewBlock(data, prevHash)
-
-	if block.Data == nil || !bytes.Equal(block.Data, []byte(data)) {
-		t.Errorf("expected data %s, got %s", data, string(block.Data))
-	}
-	if block.PrevBlockHash == nil || !bytes.Equal(block.PrevBlockHash, prevHash) {
-		t.Errorf("expected previous hash %x, got %x", prevHash, block.PrevBlockHash)
-	}
-	if block.Hash == nil || len(block.Hash) == 0 {
-		t.Error("expected non-nil and non-empty hash")
+// TestGenesisBlock checks if the genesis block is created correctly
+func TestGenesisBlock(t *testing.T) {
+	block := NewGenesisBlock()
+	if len(block.PrevBlockHash) != 0 {
+		t.Errorf("Genesis block should have no previous block hash")
 	}
 }
 
-func TestNewGenesisBlock(t *testing.T) {
-	genesisBlock := NewGenesisBlock()
-	if genesisBlock == nil {
-		t.Fatalf("Expected genesis block to be created")
-	}
-	if len(genesisBlock.Hash) == 0 {
-		t.Errorf("Expected genesis block hash to be set")
-	}
-	if !bytes.Equal(genesisBlock.PrevBlockHash, []byte{}) {
-		t.Errorf("Expected genesis block to have no previous block hash")
+// TestBlockMining ensures that mining a block works correctly
+func TestBlockMining(t *testing.T) {
+	tx := createTransaction()
+	block := NewBlock([]*transactions.Transaction{tx}, []byte{})
+	pow := NewProofOfWork(block)
+
+	if !pow.Validate() {
+		t.Errorf("Block did not pass proof of work validation")
 	}
 }

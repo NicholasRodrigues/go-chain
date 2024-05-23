@@ -14,8 +14,8 @@ var maxNonce = math.MaxInt64
 
 // ProofOfWork represents a proof-of-work.
 type ProofOfWork struct {
-	block *Block
-	T     big.Int
+	block  *Block
+	target *big.Int
 }
 
 // NewProofOfWork creates and returns a ProofOfWork.
@@ -23,7 +23,7 @@ func NewProofOfWork(b *Block) *ProofOfWork {
 	target := big.NewInt(1)
 	target.Lsh(target, uint(256-Difficulty))
 
-	pow := &ProofOfWork{b, *target}
+	pow := &ProofOfWork{b, target}
 
 	return pow
 }
@@ -33,7 +33,7 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	data := bytes.Join(
 		[][]byte{
 			pow.block.PrevBlockHash,
-			pow.block.Data,
+			pow.block.HashTransactions(),
 			[]byte(strconv.FormatInt(pow.block.Timestamp, 10)),
 			[]byte(strconv.FormatInt(int64(Difficulty), 10)),
 			[]byte(strconv.FormatInt(int64(nonce), 10)),
@@ -55,7 +55,7 @@ func (pow *ProofOfWork) Run() ([]byte, int) {
 		hash = sha256.Sum256(data)
 		hashInt.SetBytes(hash[:])
 
-		if hashInt.Cmp(&pow.T) == -1 {
+		if hashInt.Cmp(pow.target) == -1 {
 			break
 		} else {
 			nonce++
@@ -73,5 +73,5 @@ func (pow *ProofOfWork) Validate() bool {
 	hash := sha256.Sum256(data)
 	hashInt.SetBytes(hash[:])
 
-	return hashInt.Cmp(&pow.T) == -1
+	return hashInt.Cmp(pow.target) == -1
 }

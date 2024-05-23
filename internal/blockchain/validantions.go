@@ -1,24 +1,20 @@
 package blockchain
 
 import (
-	"crypto/sha256"
+	"bytes"
 	"fmt"
-	"math/big"
-	"reflect"
-	"time"
+	"github.com/NicholasRodrigues/go-chain/internal/transactions"
 )
 
+// Receive is a function type for receiving data
 type Receive func() string
+
+// Input is a function type for providing input data
 type Input func() string
 
 // ValidateBlockPredicate validates a block using Proof of Work
 func ValidateBlockPredicate(pow *ProofOfWork) bool {
-	var hashInt big.Int
-	data := pow.prepareData(pow.block.Counter)
-	hash := sha256.Sum256(data)
-	hashInt.SetBytes(hash[:])
-
-	return hashInt.Cmp(&pow.T) == -1
+	return pow.Validate()
 }
 
 // ContentValidatePredicate validates the content of the blockchain
@@ -28,7 +24,7 @@ func ContentValidatePredicate(chain *Blockchain) bool {
 	}
 
 	for i := 1; i < len(chain.Blocks); i++ {
-		if reflect.DeepEqual(chain.Blocks[i].Hash, chain.Blocks[i-1].Hash) {
+		if !bytes.Equal(chain.Blocks[i].PrevBlockHash, chain.Blocks[i-1].Hash) {
 			return false
 		}
 	}
@@ -41,12 +37,13 @@ func InputContributionFunction(data []byte, chain *Blockchain, round int, input 
 	receiveData := receive()
 	concatData := inputData + receiveData
 
-	newBlock := &Block{
-		Timestamp:     time.Now().Unix(),
-		Data:          []byte(concatData),
-		PrevBlockHash: chain.Blocks[len(chain.Blocks)-1].Hash,
-		Counter:       round,
-	}
+	newTransaction := transactions.NewTransaction(
+		[]transactions.TransactionInput{{Txid: []byte{}, Vout: -1, ScriptSig: concatData}},
+		[]transactions.TransactionOutput{{Value: 50, ScriptPubKey: "pubkey1"}},
+	)
+
+	prevBlock := chain.Blocks[len(chain.Blocks)-1]
+	newBlock := NewBlock([]*transactions.Transaction{newTransaction}, prevBlock.Hash)
 
 	chain.Blocks = append(chain.Blocks, newBlock)
 
@@ -62,7 +59,9 @@ func InputContributionFunction(data []byte, chain *Blockchain, round int, input 
 func ChainReadFunction(chain *Blockchain) string {
 	var data string
 	for _, block := range chain.Blocks {
-		data += string(block.Data)
+		for _, tx := range block.Transactions {
+			data += fmt.Sprintf("%x", tx.ID)
+		}
 	}
 	return data
 }
@@ -73,19 +72,11 @@ func ChainValidationPredicate(chain *Blockchain) bool {
 		return false
 	}
 
-	for len(chain.Blocks) > 0 {
-		lastBlock := chain.Blocks[len(chain.Blocks)-1]
-		hash := sha256.Sum256(lastBlock.Data)
-		proof := &ProofOfWork{block: lastBlock, T: *big.NewInt(1)}
-
-		if !ValidateBlockPredicate(proof) || !reflect.DeepEqual(lastBlock.Hash, hash) {
+	for _, block := range chain.Blocks {
+		pow := NewProofOfWork(block)
+		if !pow.Validate() {
 			return false
 		}
-
-		// Prepare the hash for the next iteration
-		hash = [32]byte{}
-		copy(hash[:], lastBlock.Data)
-		chain.Blocks = chain.Blocks[:len(chain.Blocks)-1]
 	}
 
 	return true
